@@ -74,3 +74,4 @@ sshpass -e ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} \
           "
 ```
 
+![Reponse Q3 - CD](repQ3_cd.png)
