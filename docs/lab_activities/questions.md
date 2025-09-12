@@ -41,6 +41,10 @@ sudo apt install docker.io docker-compose -y
 sudo usermod -aG docker azureuser
 sudo systemctl enable docker
 sudo systemctl start docker
+
+# Configurer Git
+git config --global user.name "Orchydae"
+git config --global user.email "nguyen.dddavid@hotmail.com"
 ```
 
 Enfin l'approche qui sera utilisé pour l'automatisation du déploiement est sshpass pour sa simplicité. Le script BASH utilisé est le suivant:
