@@ -39,10 +39,10 @@ jobs:
             set -euo pipefail
             cd ~
             REPO_NAME=\$(basename ${{ github.repository }})
-            if [ ! -d \$REPO_NAME ]; then
+            if [ ! -d \"\$REPO_NAME\" ]; then
               git clone https://github.com/${{ github.repository }}.git
-            fi;
-            cd \"$REPO_NAME\"
+            fi
+            cd \"\$REPO_NAME\"
             git fetch --all --prune
             git checkout main
             git pull --ff-only
