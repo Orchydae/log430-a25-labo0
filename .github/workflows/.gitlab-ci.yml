@@ -1,7 +1,7 @@
 name: Testing out GitLab CI with pytest
 on: [push]
 jobs:
-  Do-your-tests-mofo:
+  Do-your-tests-mofo-CI:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -21,3 +21,39 @@ jobs:
       - name: Run tests
         run: |
           pytest 
+
+  Deployment-CD:
+    needs: Do-your-tests-mofo-CI
+    runs-on: ubuntu-latest
+    if: ${{ needs.Do-your-tests-mofo-CI.result == 'success' }}
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy to VM via SSH
+        env:
+          SSHPASS: ${{ secrets.SSHPASS }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.VM_HOST_IP }} "
+            set -euo pipefail
+            cd ~
+            REPO_NAME=$(basename ${{ github.repository }})
+            if [ ! -d $REPO_NAME ]; then
+              git clone https://github.com/${{ github.repository }}.git 
+            fi;
+            cd \"$REPO_NAME\"
+            git fetch --all --prune;
+            git checkout main;
+            git pull --ff-only;
+
+            # Build & (re)create containers
+            docker compose build --no-cache;
+            docker compose up -d --remove-orphans;
+
+            # Clean up unused Docker images
+            docker image prune -f
+
+            # Show running containers
+            docker compose ps
+          "
