@@ -19,64 +19,54 @@ Selon l'image, une section dédiée à l'erreur s'affiche, la raison de l'erreur
 > Quelle approche et quelles commandes avez-vous exécutées pour automatiser le déploiement continu de l'application dans la machine virtuelle? Veuillez inclure les sorties du terminal et les scripts bash dans votre réponse
 
 #### Workaround
-À l'heure actuelle, les VMs académiques ne fonctionnent pas. De ce fait, il est possible de contourner la situation en créant notre propre VM locale (Ubuntu avec VirtualBox). Ainsi, après avoir obtenu les informations de la VM (adresse IP et ces identifiants) et en activant le SSH dans celle-ci, il est possible de s'y connecter à partir de l'ordinateur hôte.
+À l'heure actuelle, les VMs de l'école ne fonctionnent pas. De ce fait, il est possible de contourner la situation en créant notre propre VM - Azure VM a été choisi pour ce projet. 
 
-La commande étant 
-`ssh admin@192.168.X.XX` et le mot de passe de la VM. Cela permet ainsi de simuler un serveur distant. Par la suite, on prépare la VM pour le labo0 avec les commandes suivantes:
+![Reponse Q3 - Azure VM](repQ3_azurevm.png)
+
+Ainsi, pour que la pipeline CI/CD fonctionne avec cette VM, les secrets ont été configuré dans le repo GitHub:
+
+![Reponse Q3 - Secret](repQ3_secrets.png)
+
+Ensuite, j'ai vérifié la connectivité depuis ma machine locale:
+![Reponse Q3 - SSH](repQ3_ssh.png)
+
+Puis, je me suis assuré que les prérequis existent sur la VM:
 ```
-# Mettre à jour
-sudo apt update && sudo apt upgrade -y
+# Git
+sudo apt update
+sudo apt install git -y
 
-# Installer Python et pip
-sudo apt install python3 python3-pip python3-venv -y
-
-# Installer Docker
-sudo apt install docker.io -y
+# Docker et Docker Compose
+sudo apt install docker.io docker-compose -y
+sudo usermod -aG docker azureuser
 sudo systemctl enable docker
 sudo systemctl start docker
 ```
 
-Maintenant nous allons déployer le labo0 dans la VM via SSH:
+Enfin l'approche qui sera utilisé pour l'automatisation du déploiement est sshpass pour sa simplicité. Le script BASH utilisé est le suivant:
 ```
-# Récupérer le projet
-git clone https://github.com/Orchydae/log430-a25-labo0.git
-cd log430-a25-labo0
+sshpass -e ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.VM_HOST_IP }} "
+            set -euo pipefail
+            cd ~
+            REPO_NAME=\$(basename ${{ github.repository }})
+            if [ ! -d \$REPO_NAME ]; then
+              git clone https://github.com/${{ github.repository }}.git
+            fi;
+            cd \"$REPO_NAME\"
+            git fetch --all --prune
+            git checkout main
+            git pull --ff-only
 
-# Construire l’image Docker
-docker build -t labo0-calculator . # j'ai ajouté sudo au début car ça ne marchait pas juste comme ça
+            # Build & (re)create containers
+            docker compose build --no-cache
+            docker compose up -d --remove-orphans
 
-# Lancer le conteneur
-docker run --name calc -it labo0-calculator #la commande -it permet de rouler le conteneur en mode interatif (CLI app qui est la calculatrice en question)
+            # Clean up unused Docker images
+            docker image prune -f
+
+            # Show running containers
+            docker compose ps
+          "
 ```
 
-#### Automatiser le déploiement continu à la suite du workaround(CD)
-L'approche qui sera utilisée est via SSH.
-
-
-???
-
-Maintenant, dans le home de mon utilisateur (/home/admin/), j'y crée le script:
-`nano ~/deploy.sh`
-
-Et voici son contenu:
-```
-#!/bin/bash
-set -euo pipefail
-
-# Répertoire du projet sur la VM
-APP_DIR="$HOME/log430-a25-labo0"
-
-# Si le dossier n'existe pas, clone; sinon, pull
-if [ ! -d "$APP_DIR/.git" ]; then
-  git clone https://github.com/guteacher/log430-a25-labo0 "$APP_DIR"
-fi
-
-cd "$APP_DIR"
-git pull --ff-only origin main
-
-# Build & (re)start Docker
-docker build -t labo0-calculator .
-docker stop calc 2>/dev/null || true
-docker rm   calc 2>/dev/null || true
-docker run -d --name calc --restart=always labo0-calculator
-```

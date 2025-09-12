@@ -1,4 +1,4 @@
-name: Testing out GitLab CI with pytest
+name: Testing out GitHub CI with pytest
 on: [push]
 jobs:
   Do-your-tests-mofo-CI:
@@ -38,22 +38,22 @@ jobs:
             ${{ secrets.SSH_USER }}@${{ secrets.VM_HOST_IP }} "
             set -euo pipefail
             cd ~
-            REPO_NAME=$(basename ${{ github.repository }})
-            if [ ! -d $REPO_NAME ]; then
-              git clone https://github.com/${{ github.repository }}.git 
+            REPO_NAME=\$(basename ${{ github.repository }})
+            if [ ! -d \$REPO_NAME ]; then
+              git clone https://github.com/${{ github.repository }}.git
             fi;
             cd \"$REPO_NAME\"
-            git fetch --all --prune;
-            git checkout main;
-            git pull --ff-only;
+            git fetch --all --prune
+            git checkout main
+            git pull --ff-only
 
             # Build & (re)create containers
-            docker compose build --no-cache;
-            docker compose up -d --remove-orphans;
+            docker-compose build --no-cache
+            docker-compose up -d --remove-orphans
 
             # Clean up unused Docker images
             docker image prune -f
 
             # Show running containers
-            docker compose ps
+            docker-compose ps
           "
