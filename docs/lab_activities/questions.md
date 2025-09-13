@@ -75,3 +75,14 @@ sshpass -e ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} \
 ```
 
 ![Reponse Q3 - CD](repQ3_cd.png)
+
+### Question 4
+> Quel type d'informations pouvez-vous obtenir via la commande « top » ? Veuillez inclure la sortie du terminal dans votre réponse.
+
+Ainsi, maintenant que l'application a été déployée sur la VM, on se connecte sur celle-ci, puis on cd vers le repo et on peut la faire rouler avec `docker-compose run --rm calculator python src/calculator.py`
+
+![Reponse Q4 - run](repQ4_run.png)
+
+De ce fait, la commande `top` permet d'avoir les informations comme l'heure, le uptime, le nombre d'utilisateurs connectés. De plus, on peut y avoir le nombre total de processus (ainsi que leurs états). L'image suivant illustre les processus qui s'affiche lors de l'utilisation de cette commande (à noter qu'on peut voir l'application calculatrice en python qui roule également):
+
+![Reponse Q4 - top](repQ4_top.png)
